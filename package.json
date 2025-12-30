@@ -1,0 +1,46 @@
+{
+    "name": "@johnroshan2255/universal-db-mcp",
+    "version": "1.0.0",
+    "description": "MCP server for PostgreSQL and MySQL databases - enables Claude to query your databases",
+    "main": "index.js",
+    "type": "module",
+    "bin": {
+      "universal-db-mcp": "./index.js"
+    },
+    "scripts": {
+      "start": "node index.js"
+    },
+    "keywords": [
+      "mcp",
+      "model-context-protocol",
+      "claude",
+      "database",
+      "postgresql",
+      "mysql",
+      "sql",
+      "ai",
+      "llm"
+    ],
+    "author": "John Roshan <johnroshan2255@gmail.com>",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/johnroshan2255/universal-db-mcp.git"
+    },
+    "engines": {
+      "node": ">=18.0.0"
+    },
+    "files": [
+      "index.js",
+      "README.md",
+      "LICENCE"
+    ],
+    "dependencies": {
+      "@modelcontextprotocol/sdk": "^1.25.1",
+      "pg": "^8.13.1",
+      "mysql2": "^3.11.5"
+    },
+    "devDependencies": {
+      "eslint": "^9.17.0"
+    }
+  }
