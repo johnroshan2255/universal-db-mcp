@@ -5,7 +5,7 @@ Model Context Protocol server for PostgreSQL and MySQL databases. Enables Claude
 ## Installation
 
 ```bash
-npm install -g @johnroshan2255/universal-db-mcp
+npm install -g @johnroshan/universal-db-mcp
 ```
 
 ## Configuration
@@ -22,7 +22,7 @@ Windows: `%APPDATA%\Claude\claude_desktop_config.json`
   "mcpServers": {
     "postgres": {
       "command": "npx",
-      "args": ["-y", "@johnroshan2255/universal-db-mcp"],
+      "args": ["-y", "@johnroshan/universal-db-mcp"],
       "env": {
         "DB_TYPE": "postgres",
         "DATABASE_URL": "postgresql://user:password@localhost:5432/mydb"
@@ -39,7 +39,7 @@ Or use individual parameters:
   "mcpServers": {
     "postgres": {
       "command": "npx",
-      "args": ["-y", "@johnroshan2255/universal-db-mcp"],
+      "args": ["-y", "@johnroshan/universal-db-mcp"],
       "env": {
         "DB_TYPE": "postgres",
         "DB_HOST": "localhost",
@@ -60,7 +60,7 @@ Or use individual parameters:
   "mcpServers": {
     "mysql": {
       "command": "npx",
-      "args": ["-y", "@johnroshan2255/universal-db-mcp"],
+      "args": ["-y", "@johnroshan/universal-db-mcp"],
       "env": {
         "DB_TYPE": "mysql",
         "DATABASE_URL": "mysql://user:password@localhost:3306/mydb"
