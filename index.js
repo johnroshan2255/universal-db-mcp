@@ -6,10 +6,15 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import pg from "pg";
-import mysql from "mysql2/promise";
-
-const { Client: PgClient } = pg;
+import {
+  createConnection,
+  query,
+  listTables,
+  describeTable,
+  listDatabases,
+  getTableRowCount,
+  searchTable,
+} from "./lib.js";
 
 const DB_TYPE = process.env.DB_TYPE;
 const DB_HOST = process.env.DB_HOST || "localhost";
@@ -32,7 +37,7 @@ if (!DATABASE_URL && (!DB_NAME || !DB_USER)) {
 const server = new Server(
   {
     name: "universal-db-mcp",
-    version: "1.0.0",
+    version: "1.0.1",
   },
   {
     capabilities: {
@@ -40,53 +45,6 @@ const server = new Server(
     },
   }
 );
-
-async function getConnection() {
-  if (DB_TYPE === "postgres") {
-    const client = new PgClient(
-      DATABASE_URL || {
-        host: DB_HOST,
-        port: DB_PORT || 5432,
-        database: DB_NAME,
-        user: DB_USER,
-        password: DB_PASSWORD,
-      }
-    );
-    await client.connect();
-    return {
-      client,
-      async query(sql, params = []) {
-        const result = await client.query(sql, params);
-        return result.rows;
-      },
-      async close() {
-        await client.end();
-      },
-    };
-  } else if (DB_TYPE === "mysql") {
-    const connection = await mysql.createConnection(
-      DATABASE_URL || {
-        host: DB_HOST,
-        port: DB_PORT || 3306,
-        database: DB_NAME,
-        user: DB_USER,
-        password: DB_PASSWORD,
-      }
-    );
-    return {
-      client: connection,
-      async query(sql, params = []) {
-        const [rows] = await connection.execute(sql, params);
-        return rows;
-      },
-      async close() {
-        await connection.end();
-      },
-    };
-  } else {
-    throw new Error(`Unsupported database type: ${DB_TYPE}`);
-  }
-}
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
@@ -184,10 +142,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   let conn;
 
   try {
-    conn = await getConnection();
+    conn = await createConnection({
+      DB_TYPE,
+      DATABASE_URL,
+      DB_HOST,
+      DB_PORT,
+      DB_NAME,
+      DB_USER,
+      DB_PASSWORD,
+    });
 
     if (name === "query") {
-      const results = await conn.query(args.sql);
+      const results = await query(conn, args.sql);
       return {
         content: [
           {
@@ -206,22 +172,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === "list_tables") {
-      let results;
-      if (DB_TYPE === "postgres") {
-        results = await conn.query(`
-          SELECT table_name, table_type
-          FROM information_schema.tables
-          WHERE table_schema = 'public'
-          ORDER BY table_name
-        `);
-      } else {
-        results = await conn.query(`
-          SELECT table_name, table_type
-          FROM information_schema.tables
-          WHERE table_schema = ?
-          ORDER BY table_name
-        `, [DB_NAME]);
-      }
+      const results = await listTables(conn);
       return {
         content: [
           {
@@ -233,32 +184,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === "describe_table") {
-      let results;
-      if (DB_TYPE === "postgres") {
-        results = await conn.query(`
-          SELECT 
-            column_name,
-            data_type,
-            character_maximum_length,
-            is_nullable,
-            column_default
-          FROM information_schema.columns
-          WHERE table_name = $1
-          ORDER BY ordinal_position
-        `, [args.table]);
-      } else {
-        results = await conn.query(`
-          SELECT 
-            column_name,
-            data_type,
-            character_maximum_length,
-            is_nullable,
-            column_default
-          FROM information_schema.columns
-          WHERE table_schema = ? AND table_name = ?
-          ORDER BY ordinal_position
-        `, [DB_NAME, args.table]);
-      }
+      const results = await describeTable(conn, args.table);
       return {
         content: [
           {
@@ -270,17 +196,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === "list_databases") {
-      let results;
-      if (DB_TYPE === "postgres") {
-        results = await conn.query(`
-          SELECT datname as database_name
-          FROM pg_database
-          WHERE datistemplate = false
-          ORDER BY datname
-        `);
-      } else {
-        results = await conn.query(`SHOW DATABASES`);
-      }
+      const results = await listDatabases(conn);
       return {
         content: [
           {
@@ -292,35 +208,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === "table_row_count") {
-      const results = await conn.query(
-        `SELECT COUNT(*) as count FROM ${args.table}`
-      );
+      const result = await getTableRowCount(conn, args.table);
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify(results[0], null, 2),
+            text: JSON.stringify(result, null, 2),
           },
         ],
       };
     }
 
     if (name === "search_table") {
-      const limit = args.limit || 100;
-      let results;
-      
-      if (DB_TYPE === "postgres") {
-        results = await conn.query(
-          `SELECT * FROM ${args.table} WHERE ${args.column}::text ILIKE $1 LIMIT $2`,
-          [`%${args.value}%`, limit]
-        );
-      } else {
-        results = await conn.query(
-          `SELECT * FROM ${args.table} WHERE ${args.column} LIKE ? LIMIT ?`,
-          [`%${args.value}%`, limit]
-        );
-      }
-      
+      const results = await searchTable(
+        conn,
+        args.table,
+        args.column,
+        args.value,
+        args.limit
+      );
       return {
         content: [
           {

@@ -1,11 +1,15 @@
 {
   "name": "@johnroshan/universal-db-mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "MCP server for PostgreSQL and MySQL databases - enables Claude to query your databases",
   "main": "index.js",
   "type": "module",
   "bin": {
     "universal-db-mcp": "./index.js"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./lib": "./lib.js"
   },
   "scripts": {
     "start": "node index.js"
@@ -31,11 +35,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "files": [
-    "index.js",
-    "README.md",
-    "LICENCE"
-  ],
+  "files": ["index.js", "lib.js", "README.md", "LICENSE"],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.1",
     "pg": "^8.13.1",
